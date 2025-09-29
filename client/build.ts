@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import plugin from "bun-plugin-tailwind";
 import { existsSync } from "fs";
-import { rm } from "fs/promises";
+import { copyFile, rm } from "fs/promises";
 import path from "path";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -134,6 +134,20 @@ const result = await Bun.build({
   },
   ...cliConfig,
 });
+
+const staticAssets = ["logo.svg"];
+
+for (const asset of staticAssets) {
+  const source = path.join("src", asset);
+
+  if (!existsSync(source)) {
+    continue;
+  }
+
+  const destination = path.join(outdir, asset);
+  await copyFile(source, destination);
+  console.log(`📦 Copied static asset: ${asset}`);
+}
 
 const end = performance.now();
 
