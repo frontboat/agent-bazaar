@@ -1,0 +1,23 @@
+{
+  "name": "buyer-agent",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.39",
+    "@coinbase/cdp-sdk": "^1.38.3",
+    "@coinbase/x402": "^0.6.5",
+    "@daydreamsai/cli": "^0.3.22",
+    "@daydreamsai/core": "^0.3.22",
+    "@daydreamsai/mcp": "^0.3.22",
+    "@openrouter/ai-sdk-provider": "^1.2.0",
+    "dotenv": "^17.2.2",
+    "x402-fetch": "^0.6.0"
+  }
+}

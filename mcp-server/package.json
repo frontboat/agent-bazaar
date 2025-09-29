@@ -1,5 +1,5 @@
 {
-  "name": "buyer",
+  "name": "mcp-server",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -10,8 +10,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.39",
     "@coinbase/x402": "^0.6.5",
-    "@daydreamsai/core": "^0.3.22"
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "dotenv": "^17.2.2",
+    "x402-fetch": "^0.6.0",
+    "zod": "^3.23.8"
   }
 }
