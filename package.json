@@ -1,0 +1,17 @@
+{
+  "name": "buyer",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.39",
+    "@coinbase/x402": "^0.6.5",
+    "@daydreamsai/core": "^0.3.22"
+  }
+}
