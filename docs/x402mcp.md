@@ -34,14 +34,25 @@ npm install @modelcontextprotocol/sdk axios viem x402-axios dotenv
 Create a `.env` file in your project root:
 
 ```
-PRIVATE_KEY=0xYourTestnetPrivateKey
+CDP_API_KEY_ID=your-api-key-id
+CDP_API_KEY_SECRET=your-api-key-secret
+CDP_WALLET_SECRET=your-wallet-secret
+# Optional: pin a specific EVM account (otherwise one named "x402-mcp-buyer" will be created)
+# CDP_EVM_ACCOUNT_ADDRESS=0xYourServerWalletAccount
+# CDP_EVM_ACCOUNT_NAME=custom-account-name
+
 RESOURCE_SERVER_URL=http://localhost:4021
 ENDPOINT_PATH=/weather
+
+# Optional: keep Solana access until Server Wallet v2 support lands
+# SVM_PRIVATE_KEY=base58-encoded-private-key
 ```
 
-* `PRIVATE_KEY`: Your EVM wallet's private key (for signing payments)
+* `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET` / `CDP_WALLET_SECRET`: Server Wallet v2 credentials from the Coinbase Developer Platform
+* `CDP_EVM_ACCOUNT_ADDRESS` / `CDP_EVM_ACCOUNT_NAME` (optional): choose which managed account funds x402 calls; omit to auto-create `x402-mcp-buyer`
 * `RESOURCE_SERVER_URL`: The base URL of the paid API (use the sample express server for this demo)
 * `ENDPOINT_PATH`: The specific endpoint path (e.g., `/weather`)
+* `SVM_PRIVATE_KEY` (optional): temporary Solana fallback until Server Wallet v2 Solana signing is wired up
 
 ### 3. Implementation: MCP Server with x402 Payments
 
@@ -49,24 +60,31 @@ ENDPOINT_PATH=/weather
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import axios from "axios";
-import { Hex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { CdpClient } from "@coinbase/cdp-sdk";
+import { toAccount } from "viem/accounts";
 import { withPaymentInterceptor } from "x402-axios";
 import { config } from "dotenv";
 
 // Load environment variables and throw an error if any are missing
 config();
 
-const privateKey = process.env.PRIVATE_KEY as Hex;
 const baseURL = process.env.RESOURCE_SERVER_URL as string; // e.g. https://example.com
 const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather
+const cdp = new CdpClient();
+const managedAccount = await cdp.evm.getOrCreateAccount({
+  name: process.env.CDP_EVM_ACCOUNT_NAME ?? "x402-mcp-buyer",
+});
+const account = toAccount({
+  address: managedAccount.address as `0x${string}`,
+  sign: managedAccount.sign.bind(managedAccount),
+  signMessage: managedAccount.signMessage.bind(managedAccount),
+  signTransaction: managedAccount.signTransaction.bind(managedAccount),
+  signTypedData: managedAccount.signTypedData.bind(managedAccount),
+});
 
-if (!privateKey || !baseURL || !endpointPath) {
+if (!baseURL || !endpointPath) {
   throw new Error("Missing environment variables");
 }
-
-// Create a wallet client to handle payments
-const account = privateKeyToAccount(privateKey);
 
 // Create an axios client with payment interceptor using x402-axios
 const client = withPaymentInterceptor(axios.create({ baseURL }), account);
@@ -120,7 +138,9 @@ To use this integration with Claude Desktop:
         "dev"
       ],
       "env": {
-        "PRIVATE_KEY": "<private key of a wallet with USDC on Base Sepolia>",
+        "CDP_API_KEY_ID": "<your CDP API key id>",
+        "CDP_API_KEY_SECRET": "<your CDP API key secret>",
+        "CDP_WALLET_SECRET": "<your CDP wallet secret>",
         "RESOURCE_SERVER_URL": "http://localhost:4021",
         "ENDPOINT_PATH": "/weather"
       }

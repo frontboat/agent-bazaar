@@ -10,9 +10,11 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@coinbase/cdp-sdk": "^1.38.3",
     "@coinbase/x402": "^0.6.5",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "dotenv": "^17.2.2",
+    "viem": "^2.21.26",
     "x402-fetch": "^0.6.0",
     "zod": "^3.23.8"
   }

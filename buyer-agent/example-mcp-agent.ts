@@ -1,6 +1,5 @@
 import { createDreams, Logger } from "@daydreamsai/core";
 import { createMcpExtension } from "@daydreamsai/mcp";
-import { LogLevel } from "@daydreamsai/core";
 import path from "path";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import { cliExtension, cli } from "@daydreamsai/cli";

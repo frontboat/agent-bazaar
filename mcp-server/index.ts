@@ -1,18 +1,94 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from "dotenv";
-import {
-  createSigner,
-  decodeXPaymentResponse,
-  type Hex,
-  type MultiNetworkSigner,
-  wrapFetchWithPayment,
-} from "x402-fetch";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { CdpClient } from "@coinbase/cdp-sdk";
+import { toAccount } from "viem/accounts";
+import { isAddress, type Address } from "viem";
+import type { LocalAccount } from "viem/accounts";
+import { createSigner, decodeXPaymentResponse, wrapFetchWithPayment } from "x402-fetch";
 import { useFacilitator } from "x402/verify";
 import { facilitator } from "@coinbase/x402";
 import { z, type ZodRawShape } from "zod";
 
 config();
+
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+
+config({ path: path.join(moduleDir, ".env.local"), override: false });
+config({ path: path.join(moduleDir, ".env"), override: false });
+config();
+
+const requiredCdpEnv = [
+  "CDP_API_KEY_ID",
+  "CDP_API_KEY_SECRET",
+  "CDP_WALLET_SECRET",
+];
+
+const missingCdpEnv = requiredCdpEnv.filter((key) => !process.env[key]);
+
+if (missingCdpEnv.length > 0) {
+  throw new Error(
+    `Missing required CDP environment variables: ${missingCdpEnv.join(", ")}`,
+  );
+}
+
+const cdpClient = new CdpClient({
+  apiKeyId: process.env.CDP_API_KEY_ID,
+  apiKeySecret: process.env.CDP_API_KEY_SECRET,
+  walletSecret: process.env.CDP_WALLET_SECRET,
+});
+
+const configuredEvmAccountAddress = process.env.CDP_EVM_ACCOUNT_ADDRESS;
+const configuredEvmAccountName = process.env.CDP_EVM_ACCOUNT_NAME;
+const DEFAULT_EVM_ACCOUNT_NAME = "x402-mcp-buyer";
+
+function assertEvmAddress(value: string): asserts value is Address {
+  if (!isAddress(value)) {
+    throw new Error(
+      `CDP_EVM_ACCOUNT_ADDRESS must be a valid EVM address (received: ${value})`,
+    );
+  }
+}
+
+let evmServerAccountPromise: Promise<any> | null = null;
+let evmLocalAccountPromise: Promise<LocalAccount<string, Address>> | null = null;
+
+async function loadEvmServerAccount() {
+  if (!evmServerAccountPromise) {
+    evmServerAccountPromise = (async () => {
+      if (configuredEvmAccountAddress) {
+        const normalizedAddress = configuredEvmAccountAddress.trim();
+        assertEvmAddress(normalizedAddress);
+
+        return cdpClient.evm.getAccount({ address: normalizedAddress });
+      }
+
+      const accountName = configuredEvmAccountName ?? DEFAULT_EVM_ACCOUNT_NAME;
+      return cdpClient.evm.getOrCreateAccount({ name: accountName });
+    })();
+  }
+
+  return evmServerAccountPromise;
+}
+
+async function getEvmSigner() {
+  if (!evmLocalAccountPromise) {
+    evmLocalAccountPromise = (async () => {
+      const account = await loadEvmServerAccount();
+      return toAccount({
+        address: account.address as Address,
+        sign: account.sign.bind(account),
+        signMessage: account.signMessage.bind(account),
+        signTransaction: account.signTransaction.bind(account),
+        signTypedData: account.signTypedData.bind(account),
+      }) as LocalAccount<string, Address>;
+    })();
+  }
+
+  return evmLocalAccountPromise;
+}
 
 const PaymentRequirementSchema = z
   .object({
@@ -375,14 +451,13 @@ const ExecuteServiceInputSchema = z
 
 const executeServiceShape: ZodRawShape = ExecuteServiceInputSchema.shape;
 
-type AnySigner = Awaited<ReturnType<typeof createSigner>>;
+type SvmSigner = Awaited<ReturnType<typeof createSigner>>;
+type EvmSigner = Awaited<ReturnType<typeof getEvmSigner>>;
 
-type SupportedSigner = AnySigner | MultiNetworkSigner;
+type SupportedSigner = EvmSigner | SvmSigner;
 
-const evmSignerCache = new Map<string, AnySigner>();
-const svmSignerCache = new Map<string, AnySigner>();
+const svmSignerCache = new Map<string, SvmSigner>();
 
-const evmPrivateKey = process.env.EVM_PRIVATE_KEY as Hex | undefined;
 const svmPrivateKey = process.env.SVM_PRIVATE_KEY as string | undefined;
 
 function networkFamily(network: string): "svm" | "evm" {
@@ -399,7 +474,7 @@ async function resolveSignerForNetwork(network: string): Promise<SupportedSigner
   if (family === "svm") {
     if (!svmPrivateKey) {
       throw new Error(
-        `SVM network requested (${network}) but SVM_PRIVATE_KEY is not configured.`
+        `SVM network requested (${network}) but SVM_PRIVATE_KEY is not configured. Server Wallet v2 support for Solana networks is not yet available.`,
       );
     }
 
@@ -408,21 +483,10 @@ async function resolveSignerForNetwork(network: string): Promise<SupportedSigner
       svmSignerCache.set(network, signer);
     }
 
-    return svmSignerCache.get(network) as AnySigner;
+    return svmSignerCache.get(network) as SvmSigner;
   }
 
-  if (!evmPrivateKey) {
-    throw new Error(
-      `EVM network requested (${network}) but EVM_PRIVATE_KEY is not configured.`
-    );
-  }
-
-  if (!evmSignerCache.has(network)) {
-    const signer = await createSigner(network, evmPrivateKey);
-    evmSignerCache.set(network, signer);
-  }
-
-  return evmSignerCache.get(network) as AnySigner;
+  return getEvmSigner();
 }
 
 server.registerTool(
