@@ -26,4 +26,4 @@ cd buyer-agent && bun run example-mcp-agent.ts
 ## Issues
 1. LLM confusion: Having to ask to first get the tools from mcp, then ask to list bazaar services from mcp tool.
     - Proposal: bring the "list bazaar services" *action* to the agent context side, expose only the "call x402 service from bazaar" tool on the mcp-server
-2. SVM
+2. SVM multinetwork signer complexity
