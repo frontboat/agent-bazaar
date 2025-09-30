@@ -1,4 +1,4 @@
-# Exploring the Coinbase Bazaar
+# Exploring the Coinbase Bazaar with DaydreamsAI
 
 ## Directories
 1. `buyer-agent` starts a DaydreamsAI CLI agent using the mcp and cli extension packages.
@@ -14,7 +14,7 @@ CDP_API_KEY_SECRET=your_key
 CDP_WALLET_SECRET=your_key
 CDP_EVM_ACCOUNT_ADDRESS=your_key
 ```
-In buyer-agent
+In `buyer-agent`
 ```bash
 OPENROUTER_API_KEY=your_key
 ```
