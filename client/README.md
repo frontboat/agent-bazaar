@@ -1,4 +1,4 @@
-# bun-react-tailwind-shadcn-template
+# x402 Bazaar Human-Readable Client
 
 To install dependencies:
 
@@ -18,4 +18,4 @@ To run for production:
 bun start
 ```
 
-This project was created using `bun init` in bun v1.2.21. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+This simply renders the services returned from fetching the bazaar.
