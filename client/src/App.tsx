@@ -1,8 +1,29 @@
 import "./index.css";
 
+import { Suspense, lazy } from "react";
+
 import { BookOpen, Github } from "lucide-react";
 
-import { BazaarServicesList } from "./components/bazaar-services-list";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const BazaarServicesList = lazy(async () => {
+  const module = await import("./components/bazaar-services-list");
+  return { default: module.BazaarServicesList };
+});
+
+function BazaarServicesSuspenseFallback() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <div key={idx} className="space-y-3 rounded-xl border border-border/70 bg-muted/10 p-4">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function App() {
   return (
@@ -54,7 +75,9 @@ export function App() {
           </div>
         </header>
 
-        <BazaarServicesList />
+        <Suspense fallback={<BazaarServicesSuspenseFallback />}>
+          <BazaarServicesList />
+        </Suspense>
       </main>
     </div>
   );
