@@ -1,19 +1,13 @@
 import "./index.css";
 
-import { BookOpen, Github, Sparkles, Twitter } from "lucide-react";
+import { BookOpen, Github } from "lucide-react";
 
 import { BazaarServicesList } from "./components/bazaar-services-list";
 
 export function App() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
-        <div className="absolute -top-48 right-1/3 h-[420px] w-[420px] rounded-full bg-[conic-gradient(at_top_left,_rgba(59,130,246,0.25),_transparent_55%)] blur-3xl" />
-        <div className="absolute bottom-[-220px] left-[-120px] h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,_rgba(236,72,153,0.18),_transparent_65%)] blur-2xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,_rgba(15,23,42,0.7),_transparent_45%,_rgba(59,130,246,0.08)_75%)]" />
-      </div>
-
-      <main className="relative z-10 flex flex-col gap-12 px-6 py-16 sm:px-14">
+    <div className="relative min-h-screen bg-background text-foreground">
+      <main className="flex flex-col gap-12 px-6 py-16 sm:px-14">
         <header className="space-y-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-primary/70">x402 Bazaar</p>
           <h1 className="text-4xl font-bold text-foreground sm:text-5xl">Discover machine-payable services</h1>
