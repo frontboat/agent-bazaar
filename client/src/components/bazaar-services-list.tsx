@@ -381,9 +381,9 @@ export function BazaarServicesList() {
               <article key={`${service.resource}-${index}`} className="w-full rounded-2xl border border-border/70 bg-muted/10 p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <p className="truncate text-[1.4rem] font-semibold text-foreground sm:text-[1.5rem]">
+                    <h2 className="truncate text-[1.4rem] font-semibold text-foreground sm:text-[1.5rem]">
                       {serviceUrl?.hostname ?? service.resource}
-                    </p>
+                    </h2>
                     {summaryDescription ? (
                       <p className="text-base leading-relaxed text-muted-foreground/85">{summaryDescription}</p>
                     ) : null}
@@ -427,7 +427,7 @@ export function BazaarServicesList() {
                           value={`payment-${index}-${paymentIndex}`}
                           className="overflow-hidden rounded-lg border border-border/30 bg-background/10"
                         >
-                          <AccordionTrigger className="flex items-center justify-between px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 transition hover:text-foreground">
+                          <AccordionTrigger className="flex items-center justify-between px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground">
                             <span>Payment {paymentIndex + 1}</span>
                           </AccordionTrigger>
                           <AccordionContent className="px-3 pb-3 pt-0">
@@ -534,7 +534,7 @@ export function BazaarServicesList() {
 
                     {metadataEntries.length > 0 ? (
                         <AccordionItem value={`metadata-${index}`} className="overflow-hidden rounded-lg border border-border/30 bg-background/10">
-                        <AccordionTrigger className="flex items-center justify-between px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 transition hover:text-foreground">
+                        <AccordionTrigger className="flex items-center justify-between px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground">
                           <span>Metadata</span>
                         </AccordionTrigger>
                         <AccordionContent className="px-3 pb-3 pt-0">
