@@ -1,10 +1,34 @@
 import { serve } from "bun";
 import index from "./index.html";
 
+const robotsFile = Bun.file(new URL("./robots.txt", import.meta.url));
+const sitemapFile = Bun.file(new URL("./sitemap.xml", import.meta.url));
+
 const server = serve({
   routes: {
-    // Serve index.html for all unmatched routes.
-    "/*": index,
+    "/robots.txt": {
+      GET() {
+        return new Response(robotsFile, {
+          status: 200,
+          headers: {
+            "content-type": "text/plain",
+            "cache-control": "max-age=3600, immutable",
+          },
+        });
+      },
+    },
+
+    "/sitemap.xml": {
+      GET() {
+        return new Response(sitemapFile, {
+          status: 200,
+          headers: {
+            "content-type": "application/xml",
+            "cache-control": "max-age=3600, immutable",
+          },
+        });
+      },
+    },
 
     // Simple proxy to avoid CORS issues when the browser calls the bazaar discovery endpoint.
     "/api/bazaar/list": {
@@ -57,6 +81,9 @@ const server = serve({
         }
       },
     },
+
+    // Serve index.html for all unmatched routes.
+    "/*": index,
 
   },
 

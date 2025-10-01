@@ -105,15 +105,20 @@ function toAbsoluteUrl(resource: string | null | undefined, origin?: string): UR
   }
 }
 
-function useClipboard(value: string | null) {
+function useClipboard(getValue: () => string | null) {
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
-    if (!value || copied) {
+    if (copied) {
       return;
     }
 
     try {
+      const value = getValue();
+      if (!value) {
+        return;
+      }
+
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(value);
       } else if (typeof document !== "undefined") {
@@ -135,7 +140,7 @@ function useClipboard(value: string | null) {
     } catch (error) {
       setCopied(false);
     }
-  }, [copied, value]);
+  }, [copied, getValue]);
 
   return { copy, copied };
 }
@@ -146,11 +151,7 @@ function renderMetadataValue(value: unknown): ReactNode {
   }
 
   if (isNonEmptyObject(value) || Array.isArray(value)) {
-    return (
-      <pre className="whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-background/30 p-3 text-xs text-muted-foreground">
-        {formatJson(value)}
-      </pre>
-    );
+    return <JsonPreview value={value} />;
   }
 
   return <span className="text-muted-foreground">{String(value)}</span>;
@@ -169,8 +170,8 @@ function FieldRow({ label, value, className }: { label: string; value?: string |
   );
 }
 
-function ListingCopyButton({ value }: { value: string }) {
-  const { copy, copied } = useClipboard(value);
+function ListingCopyButton({ getValue }: { getValue: () => string | null }) {
+  const { copy, copied } = useClipboard(getValue);
 
   return (
     <Button
@@ -184,6 +185,16 @@ function ListingCopyButton({ value }: { value: string }) {
       {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
       <span className="sr-only">Copy listing JSON</span>
     </Button>
+  );
+}
+
+function JsonPreview({ value }: { value: unknown }) {
+  const formatted = useMemo(() => formatJson(value), [value]);
+
+  return (
+    <pre className="whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-background/30 p-3 text-xs text-muted-foreground">
+      {formatted}
+    </pre>
   );
 }
 
@@ -366,8 +377,6 @@ export function BazaarServicesList() {
                 ? primaryPayment.description
                 : null;
 
-            const listingJson = formatJson(service);
-
             return (
               <article key={`${service.resource}-${index}`} className="w-full rounded-2xl border border-border/70 bg-muted/10 p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
@@ -389,7 +398,7 @@ export function BazaarServicesList() {
                         ) : null}
                       </div>
                     ) : null}
-                    <ListingCopyButton value={listingJson} />
+                    <ListingCopyButton getValue={() => formatJson(service)} />
                   </div>
                 </div>
 
@@ -404,10 +413,8 @@ export function BazaarServicesList() {
                       const queryParamEntries = isNonEmptyObject(inputSchema?.queryParams)
                         ? Object.entries(inputSchema!.queryParams!)
                         : [];
-                      const formattedOutputSchema =
-                        payment.outputSchema?.output !== undefined && payment.outputSchema?.output !== null
-                          ? formatJson(payment.outputSchema.output)
-                          : null;
+
+                      const hasOutputSchema = payment.outputSchema?.output !== undefined && payment.outputSchema?.output !== null;
 
                       const isPrimaryPayment = paymentIndex === 0;
                       const shouldShowDescription =
@@ -511,14 +518,12 @@ export function BazaarServicesList() {
                                 </div>
                               ) : null}
 
-                              {formattedOutputSchema ? (
+                              {hasOutputSchema ? (
                                 <div className="space-y-2 rounded-md border border-border/60 bg-background/30 p-2">
                                   <p className="text-[0.6rem] font-semibold uppercase tracking-wide text-muted-foreground">
                                     Output schema
                                   </p>
-                                  <pre className="whitespace-pre-wrap break-words text-[0.65rem] leading-relaxed text-muted-foreground">
-                                    {formattedOutputSchema}
-                                  </pre>
+                                  <JsonPreview value={payment.outputSchema!.output} />
                                 </div>
                               ) : null}
                             </div>
