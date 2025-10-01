@@ -77,6 +77,34 @@ function formatJson(value: unknown): string {
   }
 }
 
+type JsonLdRecord = Record<string, unknown>;
+
+function compactRecord(record: JsonLdRecord): JsonLdRecord {
+  return Object.fromEntries(
+    Object.entries(record).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
+}
+
+function toAbsoluteUrl(resource: string | null | undefined, origin?: string): URL | null {
+  if (!resource) {
+    return null;
+  }
+
+  try {
+    return new URL(resource);
+  } catch (error) {
+    if (!origin) {
+      return null;
+    }
+
+    try {
+      return new URL(resource, origin);
+    } catch (nestedError) {
+      return null;
+    }
+  }
+}
+
 function useClipboard(value: string | null) {
   const [copied, setCopied] = useState(false);
 
@@ -216,6 +244,80 @@ export function BazaarServicesList() {
       return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime);
     });
   }, [services]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const existing = document.getElementById("bazaar-jsonld") as HTMLScriptElement | null;
+
+    if (sortedServices.length === 0) {
+      if (existing?.parentElement) {
+        existing.parentElement.removeChild(existing);
+      }
+      return;
+    }
+
+    const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+    const pageUrl = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : undefined;
+
+    const itemList: JsonLdRecord = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "x402 Bazaar Listings",
+      description: "Live registry of x402-enabled machine-payable services with payment and provider details.",
+      url: pageUrl,
+      numberOfItems: sortedServices.length,
+      itemListElement: sortedServices.map((service, index) => {
+        const accepts = Array.isArray(service.accepts) ? service.accepts : [];
+        const primaryPayment = accepts[0];
+        const serviceUrl = toAbsoluteUrl(service.resource, origin ?? undefined);
+        const offerUrl = toAbsoluteUrl(primaryPayment?.resource ?? undefined, origin ?? undefined) ?? serviceUrl;
+
+        const structuredService: JsonLdRecord = compactRecord({
+          "@type": "Service",
+          position: index + 1,
+          name: serviceUrl?.hostname ?? service.resource,
+          url: serviceUrl?.toString() ?? service.resource,
+          description: service.description ?? primaryPayment?.description ?? undefined,
+          serviceType: service.type ?? primaryPayment?.scheme ?? undefined,
+          provider: primaryPayment?.payTo ?? undefined,
+          areaServed: primaryPayment?.network ?? undefined,
+        });
+
+        const offer = primaryPayment
+          ? compactRecord({
+              "@type": "Offer",
+              availabilityStarts: service.lastUpdated ?? undefined,
+              priceCurrency: primaryPayment.asset ?? undefined,
+              url: offerUrl?.toString() ?? undefined,
+            })
+          : null;
+
+        if (offer && Object.keys(offer).length > 1) {
+          structuredService.offers = offer;
+        }
+
+        return structuredService;
+      }),
+    };
+
+    const script = existing ?? document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "bazaar-jsonld";
+    script.textContent = JSON.stringify(itemList, null, 2);
+
+    if (!existing) {
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      if (script.parentElement) {
+        script.parentElement.removeChild(script);
+      }
+    };
+  }, [sortedServices]);
 
   return (
     <div className="flex flex-col gap-6">

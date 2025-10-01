@@ -135,7 +135,7 @@ const result = await Bun.build({
   ...cliConfig,
 });
 
-const staticAssets = ["logo.svg"];
+const staticAssets = ["logo.svg", "robots.txt", "sitemap.xml"];
 
 for (const asset of staticAssets) {
   const source = path.join("src", asset);
