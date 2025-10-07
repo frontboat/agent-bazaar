@@ -3,9 +3,77 @@
 @layer base {
   :root {
     @apply font-sans;
+    font-family: "Inter", sans-serif;
+    font-feature-settings: "liga" 1, "calt" 1;
+  }
+
+  @supports (font-variation-settings: normal) {
+    :root {
+      font-family: "InterVariable", sans-serif;
+    }
   }
 
   body {
     @apply min-w-[320px] min-h-screen relative m-0 bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .title-effect {
+    position: relative;
+    display: inline-block;
+    transition: -webkit-mask 0.35s ease;
+    transition: mask 0.35s ease;
+    transition: mask 0.35s ease, -webkit-mask 0.35s ease;
+    background: linear-gradient(135deg, #ffffff, #8b93a7, #ffffff);
+    background-size: 200% 100%;
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: title-shimmer 5s linear infinite, title-mask 9s ease-in-out infinite alternate;
+    -webkit-mask-image: linear-gradient(120deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 35%, rgba(0, 0, 0, 0.95) 50%, rgba(0, 0, 0, 0.75) 65%, rgba(0, 0, 0, 0.35) 100%);
+    mask-image: linear-gradient(120deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.75) 35%, rgba(0, 0, 0, 0.95) 50%, rgba(0, 0, 0, 0.75) 65%, rgba(0, 0, 0, 0.35) 100%);
+    -webkit-mask-size: 120% 100%;
+    mask-size: 120% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+}
+
+@keyframes title-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes title-mask {
+  0% {
+    -webkit-mask-position: -20% 0;
+    mask-position: -20% 0;
+  }
+
+  20% {
+    -webkit-mask-position: 10% 0;
+    mask-position: 10% 0;
+  }
+
+  50% {
+    -webkit-mask-position: 60% 0;
+    mask-position: 60% 0;
+  }
+
+  80% {
+    -webkit-mask-position: 110% 0;
+    mask-position: 110% 0;
+  }
+
+  100% {
+    -webkit-mask-position: 150% 0;
+    mask-position: 150% 0;
   }
 }

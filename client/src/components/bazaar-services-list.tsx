@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, ClipboardCopy } from "lucide-react";
 
 const BAZAAR_ENDPOINT = "/api/bazaar/list";
@@ -78,6 +80,10 @@ function normalizeDescription(value?: string | null): string {
 function isDefaultDescription(value?: string | null): boolean {
   const normalized = normalizeDescription(value);
   return normalized === "" || normalized === PROTECTED_DESCRIPTION;
+}
+
+function normalizeNetwork(value?: string | null): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
 function isServiceHidden(service: BazaarService): boolean {
@@ -230,7 +236,6 @@ export function BazaarServicesList() {
   const [services, setServices] = useState<BazaarService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showHiddenListings, setShowHiddenListings] = useState(false);
 
   const fetchServices = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -301,9 +306,29 @@ export function BazaarServicesList() {
     return { hiddenEntries: hiddenItems, visibleEntries: visibleItems };
   }, [sortedServices]);
 
-  useEffect(() => {
-    setShowHiddenListings(false);
-  }, [hiddenEntries.length]);
+  const networkSummary = useMemo(() => {
+    const baseListings = new Set<string>();
+    const baseSepoliaListings = new Set<string>();
+
+    sortedServices.forEach((service) => {
+      const accepts = Array.isArray(service.accepts) ? service.accepts : [];
+
+      accepts.forEach((payment) => {
+        const network = normalizeNetwork(payment?.network);
+
+        if (network === "base") {
+          baseListings.add(service.resource);
+        } else if (network === "base-sepolia" || network === "base_sepolia") {
+          baseSepoliaListings.add(service.resource);
+        }
+      });
+    });
+
+    return {
+      base: baseListings.size,
+      baseSepolia: baseSepoliaListings.size,
+    } as const;
+  }, [sortedServices]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -401,15 +426,13 @@ export function BazaarServicesList() {
     const baseKey = `${service.resource}-${index}`;
 
     return (
-      <article key={baseKey} className="w-full rounded-2xl border border-border/70 bg-muted/10 p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+      <Card key={baseKey} className="border-border/70 bg-muted/10">
+        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <h2 className="truncate text-[1.4rem] font-semibold text-foreground sm:text-[1.5rem]">
+            <CardTitle className="truncate text-[1.4rem] sm:text-[1.5rem]">
               {serviceUrl?.hostname ?? service.resource}
-            </h2>
-            {summaryDescription ? (
-              <p className="text-base leading-relaxed text-muted-foreground/85">{summaryDescription}</p>
-            ) : null}
+            </CardTitle>
+            {summaryDescription ? <CardDescription className="text-base leading-relaxed">{summaryDescription}</CardDescription> : null}
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {primaryPayment ? (
@@ -423,17 +446,18 @@ export function BazaarServicesList() {
             ) : null}
             <ListingCopyButton getValue={() => formatJson(service)} />
           </div>
-        </div>
+        </CardHeader>
 
-        {providerNote ? <p className="mt-3 text-xs italic text-muted-foreground">{providerNote}</p> : null}
+        {providerNote ? <p className="px-6 text-xs italic text-muted-foreground">{providerNote}</p> : null}
 
         {accepts.length > 0 || metadataEntries.length > 0 ? (
-          <Accordion type="multiple" className="mt-4 space-y-2 text-sm">
-            {accepts.map((payment, paymentIndex) => {
-              const inputSchema = payment.outputSchema?.input ?? undefined;
-              const queryParamEntries = isNonEmptyObject(inputSchema?.queryParams)
-                ? Object.entries(inputSchema!.queryParams!)
-                : [];
+          <CardContent className="pt-4">
+            <Accordion type="multiple" className="space-y-2 text-sm">
+              {accepts.map((payment, paymentIndex) => {
+                const inputSchema = payment.outputSchema?.input ?? undefined;
+                const queryParamEntries = isNonEmptyObject(inputSchema?.queryParams)
+                  ? Object.entries(inputSchema!.queryParams!)
+                  : [];
 
               const hasOutputSchema = payment.outputSchema?.output !== undefined && payment.outputSchema?.output !== null;
 
@@ -552,9 +576,10 @@ export function BazaarServicesList() {
                 </AccordionContent>
               </AccordionItem>
             ) : null}
-          </Accordion>
+            </Accordion>
+          </CardContent>
         ) : null}
-      </article>
+      </Card>
     );
   };
 
@@ -585,34 +610,67 @@ export function BazaarServicesList() {
           No services are currently listed. Check back soon.
         </div>
       ) : (
-        <div className="flex flex-col gap-8">
-          {visibleEntries.length > 0 ? (
-            <div className="flex flex-col gap-6">{visibleEntries.map(renderServiceCard)}</div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border/70 bg-muted/10 p-6 text-center text-muted-foreground">
-              All current listings require payment to reveal details. Use the toggle below to browse them.
-            </div>
-          )}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="rounded-full border border-border/60 bg-background/60 px-3 py-1">
+              Total listings: <span className="text-foreground">{sortedServices.length}</span>
+            </span>
+            <span className="rounded-full border border-border/60 bg-background/60 px-3 py-1">
+              Base: <span className="text-foreground">{networkSummary.base}</span>
+            </span>
+            <span className="rounded-full border border-border/60 bg-background/60 px-3 py-1">
+              Base Sepolia: <span className="text-foreground">{networkSummary.baseSepolia}</span>
+            </span>
+          </div>
 
-          {hiddenEntries.length > 0 ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-medium text-muted-foreground">Protected or empty listings</p>
-                <Button variant="outline" size="sm" onClick={() => setShowHiddenListings((value) => !value)}>
-                  {showHiddenListings
-                    ? "Hide protected/empty listings"
-                    : `Show protected/empty listings (${hiddenEntries.length})`}
-                </Button>
-              </div>
-              {showHiddenListings ? (
-                <div className="flex flex-col gap-6">{hiddenEntries.map(renderServiceCard)}</div>
+          <Tabs
+            defaultValue={visibleEntries.length > 0 ? "catalog" : "hidden"}
+            className="flex flex-col gap-4"
+          >
+            <TabsList className="w-fit">
+              <TabsTrigger value="catalog" disabled={visibleEntries.length === 0} className="gap-2">
+                Catalog
+                <span className="text-xs font-medium text-muted-foreground">{visibleEntries.length}</span>
+              </TabsTrigger>
+              {hiddenEntries.length > 0 ? (
+                <TabsTrigger value="hidden" className="gap-2">
+                  Protected / Empty
+                  <span className="text-xs font-medium text-muted-foreground">{hiddenEntries.length}</span>
+                </TabsTrigger>
+              ) : null}
+            </TabsList>
+
+            <TabsContent value="catalog" className="mt-0 space-y-4">
+              {visibleEntries.length > 0 ? (
+                <div className="grid gap-6">{visibleEntries.map(renderServiceCard)}</div>
               ) : (
-                <p className="text-xs text-muted-foreground">
-                  These entries either return paywalled endpoints or omit descriptions entirely. Expand to inspect them.
-                </p>
+                <Card className="border-dashed border-border/70 bg-muted/10">
+                  <CardHeader className="p-6">
+                    <CardTitle className="text-base">No descriptive listings</CardTitle>
+                    <CardDescription>
+                      All current services are either protected or missing descriptions. Use the other tab to explore
+                      them.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
               )}
-            </div>
-          ) : null}
+            </TabsContent>
+
+            {hiddenEntries.length > 0 ? (
+              <TabsContent value="hidden" className="mt-0 space-y-4">
+                <Card className="border-border/60 bg-muted/5">
+                  <CardHeader className="gap-1 p-6">
+                    <CardTitle className="text-base">Protected or empty listings</CardTitle>
+                    <CardDescription>
+                      These endpoints typically guard their payloads behind x402 payments or omit descriptions. Use
+                      copy actions to inspect the raw JSON.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                <div className="grid gap-6">{hiddenEntries.map(renderServiceCard)}</div>
+              </TabsContent>
+            ) : null}
+          </Tabs>
         </div>
       )}
     </div>

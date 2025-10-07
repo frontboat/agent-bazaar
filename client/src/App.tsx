@@ -28,12 +28,10 @@ function BazaarServicesSuspenseFallback() {
 export function App() {
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      <main className="flex flex-col gap-12 px-6 py-16 sm:px-14">
+      <main className="flex flex-col gap-12 px-6 pb-16 pt-6 sm:px-14 sm:pt-8">
         <header className="space-y-4 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-primary/70">x402 Bazaar</p>
-          <h1 className="text-4xl font-bold text-foreground sm:text-5xl">Discover machine-payable services</h1>
-          <p className="mx-auto max-w-3xl text-base text-muted-foreground">
-            Browse the live catalog of x402-enabled endpoints published through the Coinbase CDP facilitator.
+          <p className="title-effect text-sm font-semibold uppercase tracking-[0.35em] text-primary/70 sm:text-base">
+            x402 Bazaar
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs uppercase tracking-[0.25em] text-muted-foreground">
             <a
